@@ -44,3 +44,13 @@ Internet ──443/tcp──> Apache (TLS via certbot) ──proxy──> 127.0.
 Internet ──80/tcp───> Apache (redirects to 443, serves ACME challenges)
 Internet ──7000/tcp─> blocked by ufw (not needed — Apache reaches it over localhost)
 ```
+
+## Warning
+
+These scripts make system-level changes: installing packages, editing Apache
+configuration, changing ufw firewall rules, requesting TLS certificates, and
+starting Docker/QLever services.
+
+Read each script before running it. Use this at your own risk. The author is not
+responsible for downtime, lockouts, data loss, misconfiguration, security issues,
+or other problems caused by running these scripts.
