@@ -27,6 +27,7 @@ You will run the scripts in number order:
 ./02_setup_apache.sh
 ./02b_patch_apache_proxy.sh
 ./03_configure_ufw.sh
+./04_request_certificate.sh
 ./04_install_certificate.sh
 ./05_setup_qlever_dataset.sh
 ./06_index_and_start.sh
