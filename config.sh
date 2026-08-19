@@ -25,6 +25,23 @@ QLEVER_UI_PORT="8176"
 # once you're ready to point QLever at your own dataset instead.
 DATASET_NAME="olympics"
 
+# --- TLS certificate (institutionally issued) ---------------------------
+# Let's Encrypt HTTP-01 validation CANNOT work on this network: Stony
+# Brook's perimeter firewall blocks the "acme-protocol" application by
+# User-Agent, returning an "Application Blocked" 503 before traffic ever
+# reaches Apache. The certificate is therefore issued out-of-band (the
+# same way vulcan.bmi.stonybrook.edu does it) and installed by
+# ./04_install_certificate.sh.
+#
+# Point these at the files the issuer gave you. NEVER commit the private
+# key to this repo.
+CERT_FILE=""
+CERT_KEY_FILE=""
+
+# Intermediate/chain bundle from the issuer. Leave empty only if the
+# issuer supplied none (rare; browsers will show chain errors without it).
+CERT_CHAIN_FILE="$HOME/certs/chain.crt"
+
 # Directory where QLever's working files (Qleverfile, downloaded data,
 # on-disk index) will live.
 QLEVER_WORKDIR="$HOME/qlever-data"
