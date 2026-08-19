@@ -11,7 +11,6 @@ already got configured.
 2. Make sure a DNS A (or AAAA) record for `DOMAIN` points at this
    server's public IP. It doesn't have to be live yet for the first few
    scripts, but it must be live before step 4.
-3. `chmod +x *.sh` (once).
 
 ## Run order
 
@@ -60,3 +59,5 @@ wrong place, or Apache decides today is character-building day, that is between
 you, your backups, and the logs. The author is not responsible for downtime,
 lockouts, data loss, misconfiguration, security issues, or other problems caused
 by running these scripts.
+
+<br>
