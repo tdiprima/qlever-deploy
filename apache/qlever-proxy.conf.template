@@ -1,0 +1,98 @@
+# qlever-proxy.conf — shared reverse-proxy rules for QLever.
+#
+# GENERATED FILE. Do not edit in place — edit
+# apache/qlever-proxy.conf.template in the qlever-deploy repo and rerun
+# ./02b_patch_apache_proxy.sh, or your changes will be overwritten.
+#
+# This file is Include-d from BOTH the port 80 vhost (qlever.conf) and the
+# port 443 vhost certbot generates (qlever-le-ssl.conf), so the two can
+# never drift apart. It is deliberately NOT in conf-available/ — these are
+# VirtualHost-context directives and must not be loaded server-wide.
+#
+# Layout:
+#   /sparql/  -> QLever SPARQL engine   127.0.0.1:__QLEVER_PORT__
+#   /         -> QLever Web UI          127.0.0.1:__QLEVER_UI_PORT__
+#
+# Requires modules: proxy proxy_http proxy_wstunnel headers rewrite
+
+ProxyPreserveHost On
+
+# A cold cache on a large index can take minutes to answer. The Apache
+# default (60s) cuts those queries off long before QLever gives up, which
+# looks to the user like a hang rather than a timeout.
+ProxyTimeout 1200
+RequestReadTimeout header=30-300,MinRate=500 body=30-1200,MinRate=500
+
+# Tell QLever which public name and scheme it is being reached by, so the
+# links it generates are correct. expr= is evaluated per-request, which is
+# what lets the same file serve the :80 and :443 vhosts correctly.
+RequestHeader set X-Forwarded-Host expr=%{HTTP_HOST}
+RequestHeader set X-Forwarded-Proto expr=%{REQUEST_SCHEME}
+
+# -------------------------------------------------------------------
+# Let's Encrypt renewal
+# -------------------------------------------------------------------
+# The catch-all "ProxyPass /" below would hand ACME challenges to the Web
+# UI, which knows nothing about them, and renewal would fail silently ~60
+# days from now. Serve this one path from disk instead. Order matters:
+# this must precede "ProxyPass /".
+ProxyPass /.well-known/acme-challenge/ !
+Alias /.well-known/acme-challenge/ /var/www/html/.well-known/acme-challenge/
+<Directory "/var/www/html/.well-known/acme-challenge/">
+    Require all granted
+    Options None
+</Directory>
+
+# -------------------------------------------------------------------
+# WebSocket upgrade for query-progress updates
+# -------------------------------------------------------------------
+# QLever opens a WebSocket to /watch/<query-id> to stream progress. Plain
+# ProxyPass cannot carry an Upgrade handshake, so without this rule the
+# browser's spinner never resolves even though the query itself succeeds.
+# MUST come before the ProxyPass directives below.
+RewriteEngine On
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{HTTP:Connection} upgrade [NC]
+RewriteRule ^/sparql(.*)$ ws://127.0.0.1:__QLEVER_PORT__$1 [P,L]
+
+# -------------------------------------------------------------------
+# QLever SPARQL engine
+# -------------------------------------------------------------------
+# The trailing slash on both sides strips the /sparql prefix, so a request
+# for /sparql/?query=... reaches the engine as /?query=... which is where
+# QLever actually answers.
+ProxyPass /sparql/ http://127.0.0.1:__QLEVER_PORT__/
+ProxyPassReverse /sparql/ http://127.0.0.1:__QLEVER_PORT__/
+
+<Location /sparql/>
+    # Wildcard origin is appropriate for a read-only public endpoint: it
+    # lets third-party SPARQL clients query from a browser. It grants no
+    # write access — that is gated by ACCESS_TOKEN in the Qleverfile.
+    # If this endpoint ever serves non-public data, replace "*" with the
+    # specific origins allowed.
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</Location>
+
+# -------------------------------------------------------------------
+# QLever Web UI
+# -------------------------------------------------------------------
+# Started separately from the engine — see "qlever ui". Until it is
+# running, this vhost returns 503 at / while /sparql/ still works fine.
+#
+# If the UI backend slug is not reachable at the bare root, uncomment the
+# line below and set it to your UI_CONFIG value from the Qleverfile
+# (Eric's Vulcan box needs this; whether yours does depends on the slug):
+# RedirectMatch ^/$ /default/
+ProxyPass / http://127.0.0.1:__QLEVER_UI_PORT__/
+ProxyPassReverse / http://127.0.0.1:__QLEVER_UI_PORT__/
+
+# -------------------------------------------------------------------
+# ALTERNATIVE: no Web UI
+# -------------------------------------------------------------------
+# If you decide not to run the Web UI, comment out the two ProxyPass
+# lines directly above and uncomment these two instead. The SPARQL engine
+# then answers at both / and /sparql/.
+# ProxyPass / http://127.0.0.1:__QLEVER_PORT__/
+# ProxyPassReverse / http://127.0.0.1:__QLEVER_PORT__/
