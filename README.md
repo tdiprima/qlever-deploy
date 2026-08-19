@@ -45,7 +45,7 @@ Internet ──80/tcp───> Apache (redirects to 443, serves ACME challenges
 Internet ──7000/tcp─> blocked by ufw (not needed — Apache reaches it over localhost)
 ```
 
-## Warning
+## Warning ⚠️ 
 
 These scripts make system-level changes: installing packages, editing Apache
 configuration, changing ufw firewall rules, requesting TLS certificates, and
