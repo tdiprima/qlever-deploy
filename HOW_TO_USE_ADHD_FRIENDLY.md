@@ -34,14 +34,6 @@ You will run the scripts in number order:
 
 If a script says `MANUAL STEP REQUIRED`, stop and do that thing before continuing.
 
-## Step 0: Make The Scripts Runnable
-
-Run this once:
-
-```bash
-chmod +x *.sh
-```
-
 ## Step 1: Edit The Config
 
 Open `config.sh`:
@@ -421,3 +413,5 @@ You do not need to start from the beginning every time.
 - [ ] `./05_setup_qlever_dataset.sh` creates/reuses `Qleverfile`
 - [ ] `./06_index_and_start.sh` finishes
 - [ ] `./07_verify.sh` returns HTTP `200`
+
+<br>
