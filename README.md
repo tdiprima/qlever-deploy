@@ -45,12 +45,18 @@ Internet ──80/tcp───> Apache (redirects to 443, serves ACME challenges
 Internet ──7000/tcp─> blocked by ufw (not needed — Apache reaches it over localhost)
 ```
 
-## Warning ⚠️ 
+## Warning ⚠️
 
-These scripts make system-level changes: installing packages, editing Apache
-configuration, changing ufw firewall rules, requesting TLS certificates, and
-starting Docker/QLever services.
+These scripts do real server things: they install packages, edit Apache
+configuration, change ufw firewall rules, request TLS certificates, and start
+Docker/QLever services.
 
-Read each script before running it. Use this at your own risk. The author is not
-responsible for downtime, lockouts, data loss, misconfiguration, security issues,
-or other problems caused by running these scripts.
+They are meant to be careful and re-runnable, but they are not magical. Please
+read each script before running it, especially anything involving DNS, firewall
+rules, or certificates.
+
+Use this at your own risk. If your server locks you out, your DNS points to the
+wrong place, or Apache decides today is character-building day, that is between
+you, your backups, and the logs. The author is not responsible for downtime,
+lockouts, data loss, misconfiguration, security issues, or other problems caused
+by running these scripts.
