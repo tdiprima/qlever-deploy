@@ -28,6 +28,19 @@ QLEVER_UI_PORT="${QLEVER_UI_PORT:-8176}"
 
 is_dry_run="false"
 backed_up_files=()
+patch_completed="false"
+
+# Any exit before the patch is verified rolls every touched file back.
+on_exit() {
+    if [[ "$patch_completed" == "true" ]]; then
+        return 0
+    fi
+    if [[ "${#backed_up_files[@]}" -gt 0 ]]; then
+        warn "Exiting before the patch was verified — rolling back."
+        restore_backups
+    fi
+}
+trap on_exit EXIT
 
 usage() {
     cat <<'USAGE_EOF'
@@ -142,8 +155,9 @@ restore_backups() {
 # original intent stays visible in the file.
 comment_out_inline_proxy_directives() {
     local vhost="$1"
+    # Delimiter is % because the pattern itself contains | alternation.
     sudo sed --in-place --regexp-extended \
-        's|^([[:space:]]*)(ProxyPreserveHost|ProxyPass|ProxyPassReverse)([[:space:]])|\1# superseded by qlever-proxy.conf: \2\3|' \
+        's%^([[:space:]]*)(ProxyPreserveHost|ProxyPass|ProxyPassReverse)([[:space:]])%\1# superseded by qlever-proxy.conf: \2\3%' \
         "$vhost" || die "Failed to comment out inline directives in $vhost"
 }
 
@@ -225,6 +239,7 @@ main() {
     done
 
     verify_and_reload
+    patch_completed="true"
     report_next_actions
 }
 

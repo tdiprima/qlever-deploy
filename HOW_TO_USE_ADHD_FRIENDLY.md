@@ -25,8 +25,9 @@ You will run the scripts in number order:
 ./00_check_config.sh
 ./01_install_qlever.sh
 ./02_setup_apache.sh
+./02b_patch_apache_proxy.sh
 ./03_configure_ufw.sh
-./04_request_certificate.sh
+./04_install_certificate.sh
 ./05_setup_qlever_dataset.sh
 ./06_index_and_start.sh
 ./07_verify.sh
@@ -241,31 +242,56 @@ dig +short qlever.yourdomain.com
 
 The result should be your server's public IP.
 
-Wait until this works before continuing. Let's Encrypt needs this to work before
-`./04_request_certificate.sh` can succeed.
+Wait until this works before continuing.
 
-## Step 7: Request HTTPS Certificate
+NOTE for X: this step is already done. `REDACTED`
+is an existing A record pointing at 129.49.255.36. You do not need to create
+anything, and you do not need a Help Desk ticket for DNS.
 
-Run:
+## Step 7: Install The HTTPS Certificate
 
-```bash
-./04_request_certificate.sh
-```
-
-This asks Let's Encrypt for a certificate.
-
-If this fails, the usual causes are:
-
-- DNS does not point to this server yet.
-- Port `80` is blocked.
-- Apache is not running.
-- The domain was typed wrong in `config.sh`.
-
-Fix the issue, then rerun:
+Let's Encrypt does NOT work on the Stony Brook network. The campus
+perimeter firewall blocks the `acme-protocol` application by User-Agent and
+answers with a 503 "Application Blocked" page before the request ever
+reaches Apache. You can see it yourself:
 
 ```bash
-./04_request_certificate.sh
+curl -A "Mozilla/5.0 (compatible; Let's Encrypt validation server; +https://www.letsencrypt.org)" \
+  http://REDACTED/
 ```
+
+That returns 503, while the same URL with any other User-Agent returns
+normally. Nothing on the server can fix this.
+
+So the certificate is issued out-of-band, the same way
+`vulcan.bmi.stonybrook.edu` does it. Ask Eric who issues them.
+
+Put the three files somewhere readable, then set their paths in
+`config.sh`:
+
+```bash
+CERT_FILE=""
+CERT_KEY_FILE=""
+CERT_CHAIN_FILE="$HOME/certs/chain.crt"
+```
+
+Then run:
+
+```bash
+./04_install_certificate.sh
+```
+
+Before changing anything it checks that the key matches the certificate,
+that the certificate actually covers your domain, and that it has not
+expired. Any of those failing stops it with an explanation.
+
+Once you are happy that HTTPS works, force all traffic to it:
+
+```bash
+./04_install_certificate.sh --redirect-http
+```
+
+Rerun this same script to install a renewed certificate later.
 
 ## Step 8: Create The QLever Dataset Config
 
@@ -407,9 +433,10 @@ You do not need to start from the beginning every time.
 - [ ] `./01_install_qlever.sh` finishes
 - [ ] Log out and back in if Docker group changed
 - [ ] `./02_setup_apache.sh` finishes
+- [ ] `./02b_patch_apache_proxy.sh` finishes (REQUIRED before step 04)
 - [ ] `./03_configure_ufw.sh` finishes
 - [ ] SSH is allowed in ufw
-- [ ] `./04_request_certificate.sh` finishes
+- [ ] `./04_install_certificate.sh` finishes
 - [ ] `./05_setup_qlever_dataset.sh` creates/reuses `Qleverfile`
 - [ ] `./06_index_and_start.sh` finishes
 - [ ] `./07_verify.sh` returns HTTP `200`
