@@ -146,7 +146,27 @@ request_certificate() {
         || die "certbot failed. See /var/log/letsencrypt/letsencrypt.log for the real reason."
 }
 
+# Kept for reference and for networks where ACME is not blocked. On the
+# Stony Brook campus network the perimeter firewall blocks the
+# "acme-protocol" application by User-Agent, so HTTP-01 validation can
+# never succeed here. Use ./04_install_certificate.sh instead.
+refuse_on_blocked_network() {
+    [[ "${ALLOW_LETSENCRYPT:-}" == "1" ]] && return 0
+
+    die "Let's Encrypt HTTP-01 validation is BLOCKED on this network.
+The campus firewall returns an 'Application Blocked' 503 for any request
+carrying Let's Encrypt's User-Agent, before it reaches Apache. Verify:
+
+  curl -A \"Mozilla/5.0 (compatible; Let's Encrypt validation server; \\
+       +https://www.letsencrypt.org)\" http://${DOMAIN}/
+
+Use ./04_install_certificate.sh with an institutionally issued
+certificate instead. To run this script anyway (different network),
+set ALLOW_LETSENCRYPT=1."
+}
+
 main() {
+    refuse_on_blocked_network
     pause_for_manual_step "Confirm DNS for '${DOMAIN}' points at this server's PUBLIC IP address.
 From another machine, run:  dig +short ${DOMAIN}
 It must match this server's public IP, or Let's Encrypt's HTTP-01
