@@ -154,23 +154,103 @@ sudo ufw enable
 
 ## Step 6: Point DNS At The Server
 
-In your DNS provider, create an `A` record:
+This step means:
+
+> Make the domain name from `config.sh` point to this server's public IP address.
+
+### What domain should you use?
+
+Use the real domain or subdomain where you want QLever to live.
+
+Examples:
 
 ```text
-sparql.example.com -> your server public IPv4 address
+qlever.yourdomain.com
+sparql.yourdomain.com
+data.yourdomain.com
 ```
 
-If you use IPv6 too, create an `AAAA` record.
+`sparql.example.com` is only an example. Do not literally use
+`sparql.example.com` unless you own `example.com`, which you almost certainly do
+not.
+
+Whatever you choose here must also be the value in `config.sh`:
+
+```bash
+DOMAIN="qlever.yourdomain.com"
+```
+
+### What is your DNS provider?
+
+Your DNS provider is the place where your domain's DNS records are managed.
+
+It is often one of these:
+
+- The company where you bought the domain, like Namecheap, GoDaddy, Squarespace,
+  Cloudflare, Porkbun, Hover, or Google Domains/Squarespace Domains
+- Your hosting provider
+- Cloudflare, if you moved the domain's nameservers there
+- Your company's IT/admin portal, if this is a company-owned domain
+
+If you do not know where DNS is managed, check the domain's nameservers:
+
+```bash
+dig NS yourdomain.com
+```
+
+The result often hints at the provider.
+
+Examples:
+
+```text
+cloudflare.com     -> DNS is probably in Cloudflare
+domaincontrol.com  -> DNS is probably in GoDaddy
+registrar-servers.com -> DNS is probably in Namecheap
+```
+
+### What record should you create?
+
+In that DNS provider's dashboard, create an `A` record:
+
+```text
+Name: qlever
+Type: A
+Value: your server public IPv4 address
+```
+
+That makes this domain work:
+
+```text
+qlever.yourdomain.com
+```
+
+If you chose `sparql.yourdomain.com`, use this instead:
+
+```text
+Name: sparql
+Type: A
+Value: your server public IPv4 address
+```
+
+If your DNS dashboard wants the full name instead of just `qlever`, enter:
+
+```text
+qlever.yourdomain.com
+```
+
+If your server has IPv6 and you want to use it, also create an `AAAA` record
+pointing to the server's public IPv6 address. If you are not sure, skip IPv6.
 
 Check DNS from your own computer:
 
 ```bash
-dig +short sparql.example.com
+dig +short qlever.yourdomain.com
 ```
 
 The result should be your server's public IP.
 
-Wait until this works before continuing.
+Wait until this works before continuing. Let's Encrypt needs this to work before
+`./04_request_certificate.sh` can succeed.
 
 ## Step 7: Request HTTPS Certificate
 
@@ -341,4 +421,3 @@ You do not need to start from the beginning every time.
 - [ ] `./05_setup_qlever_dataset.sh` creates/reuses `Qleverfile`
 - [ ] `./06_index_and_start.sh` finishes
 - [ ] `./07_verify.sh` returns HTTP `200`
-
