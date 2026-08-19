@@ -10,13 +10,18 @@ source "$SCRIPT_DIR/config.sh"
 
 command -v ufw >/dev/null 2>&1 || die "ufw not found. Install it with: sudo apt install ufw"
 
+ufw_has_ipv4_allow_in() {
+    local rule="$1"
+    sudo ufw status numbered | grep -E "^\[[[:space:]]*[0-9]+\][[:space:]]+${rule}[[:space:]]+ALLOW IN" >/dev/null
+}
+
 # Insert an "allow <rule>" rule just above the first existing inbound DENY rule,
 # so it isn't shadowed by broad deny rules further down the list. Safe to re-run:
 # skips if a matching ALLOW IN rule already exists.
 ufw_allow_before_denies() {
     local rule="$1"
 
-    if sudo ufw status | grep -E "^${rule}[[:space:]]+ALLOW IN" >/dev/null; then
+    if ufw_has_ipv4_allow_in "$rule"; then
         log "ufw: 'allow $rule' already present, skipping."
         return
     fi
@@ -32,7 +37,7 @@ ufw_allow_before_denies() {
         sudo ufw allow "$rule" || die "ufw failed to add allow rule for $rule."
     fi
 
-    if sudo ufw status | grep -E "^${rule}[[:space:]]+ALLOW IN" >/dev/null; then
+    if ufw_has_ipv4_allow_in "$rule"; then
         log "ufw: confirmed '$rule ALLOW IN'."
     else
         die "ufw did not show '$rule ALLOW IN' after updating. Run 'sudo ufw status numbered' and check the output."
