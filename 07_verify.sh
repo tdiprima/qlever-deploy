@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/config.sh"
 TEST_QUERY="SELECT%20*%20WHERE%20%7B%3Fs%20%3Fp%20%3Fo%7D%20LIMIT%201"
 
 log "Checking QLever locally on 127.0.0.1:${QLEVER_PORT} ..."
-CODE="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${QLEVER_PORT}/api/sparql?query=${TEST_QUERY}" || true)"
+CODE="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${QLEVER_PORT}/sparql?query=${TEST_QUERY}" || true)"
 if [[ "$CODE" == "200" ]]; then
     log "Local QLever endpoint OK (HTTP $CODE)."
 else
@@ -16,7 +16,7 @@ else
 fi
 
 log "Checking Apache reverse proxy over HTTPS (https://${DOMAIN}/) ..."
-CODE="$(curl -s -o /dev/null -w '%{http_code}' "https://${DOMAIN}/api/sparql?query=${TEST_QUERY}" || true)"
+CODE="$(curl -s -o /dev/null -w '%{http_code}' "https://${DOMAIN}/sparql?query=${TEST_QUERY}" || true)"
 if [[ "$CODE" == "200" ]]; then
     log "HTTPS endpoint OK (HTTP $CODE): https://${DOMAIN}/"
 else
@@ -32,4 +32,4 @@ sudo ufw status verbose
 
 echo
 log "If both checks above show HTTP 200, your SPARQL endpoint is live at:"
-log "  https://${DOMAIN}/api/sparql"
+log "  https://${DOMAIN}/sparql"
