@@ -35,6 +35,10 @@ DATASET_NAME="olympics"
 #
 # Point these at the files the issuer gave you. NEVER commit the private
 # key to this repo.
+#
+# No institutional cert yet? Run ./04_generate_selfsigned_certificate.sh
+# first — it writes a self-signed pair to these same paths. Leave
+# CERT_CHAIN_FILE empty in that case; a self-signed cert has no chain.
 CERT_FILE=""
 CERT_KEY_FILE=""
 
