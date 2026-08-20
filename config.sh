@@ -44,7 +44,7 @@ CERT_KEY_FILE=""
 
 # Intermediate/chain bundle from the issuer. Leave empty only if the
 # issuer supplied none (rare; browsers will show chain errors without it).
-CERT_CHAIN_FILE="$HOME/certs/chain.crt"
+CERT_CHAIN_FILE=""
 
 # Directory where QLever's working files (Qleverfile, downloaded data,
 # on-disk index) will live.
