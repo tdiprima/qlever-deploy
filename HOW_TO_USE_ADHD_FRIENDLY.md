@@ -27,7 +27,8 @@ You will run the scripts in number order:
 ./02_setup_apache.sh
 ./02b_patch_apache_proxy.sh
 ./03_configure_ufw.sh
-./04_request_certificate.sh
+./04_request_certificate.sh          # Let's Encrypt (blocked on campus network, see below)
+./04_generate_selfsigned_certificate.sh  # OR: self-signed, for testing only
 ./04_install_certificate.sh
 ./05_setup_qlever_dataset.sh
 ./06_index_and_start.sh
@@ -267,8 +268,23 @@ normally. Nothing on the server can fix this.
 So the certificate is issued out-of-band, the same way
 `vulcan.bmi.stonybrook.edu` does it. Ask Eric who issues them.
 
-Put the three files somewhere readable, then set their paths in
-`config.sh`:
+**Don't have an institutional cert yet (testing only)?** Generate a
+self-signed one instead:
+
+```bash
+./04_generate_selfsigned_certificate.sh
+```
+
+This writes a self-signed key/cert pair straight to the `CERT_FILE` /
+`CERT_KEY_FILE` paths in `config.sh` (leave `CERT_CHAIN_FILE` empty —
+self-signed certs have no chain), then skip ahead to
+`./04_install_certificate.sh` below. Browsers will show a "not private"
+warning for a self-signed cert. That's expected — fine for internal
+testing, not for public-facing production. Swap in a real institutional
+cert later by re-running this same install script once one is issued.
+
+Otherwise, put the three issuer-supplied files somewhere readable, then
+set their paths in `config.sh`:
 
 ```bash
 CERT_FILE=""
