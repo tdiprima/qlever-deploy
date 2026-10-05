@@ -87,6 +87,11 @@ restore_backups() {
     done
 }
 
+require_sudo() {
+    [[ "$EUID" -eq 0 ]] \
+        || die "This script must be run with sudo: sudo ./04_install_certificate.sh"
+}
+
 validate_preconditions() {
     command -v openssl >/dev/null 2>&1 || die "openssl not found. Install it: sudo apt-get install -y openssl"
     command -v apache2ctl >/dev/null 2>&1 || die "apache2ctl not found. Run ./02_setup_apache.sh first."
@@ -292,6 +297,7 @@ verify_tls_locally() {
 
 main() {
     parse_arguments "$@"
+    require_sudo
 
     validate_preconditions
     verify_key_matches_certificate
