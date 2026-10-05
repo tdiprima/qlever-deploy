@@ -16,7 +16,11 @@ if [[ -f "Qleverfile" ]]; then
     log "Qleverfile already exists in $QLEVER_WORKDIR — leaving it as-is."
 else
     log "Fetching example Qleverfile for dataset '$DATASET_NAME'..."
-    qlever setup-config "$DATASET_NAME" || die "qlever setup-config failed. Run 'qlever setup-config --help' for valid dataset names, or set DATASET_NAME in config.sh."
+    if ! qlever setup-config "$DATASET_NAME" 2>/dev/null; then
+        log "'$DATASET_NAME' is not a built-in qlever example — using the 'default' template instead."
+        qlever setup-config default || die "qlever setup-config failed. Run 'qlever setup-config --help' for valid dataset names, or set DATASET_NAME in config.sh."
+        sed -i.bak -E "s|^NAME[[:space:]]*=.*|NAME = ${DATASET_NAME}|" Qleverfile && rm -f Qleverfile.bak
+    fi
 fi
 
 pause_for_manual_step "Open and review: ${QLEVER_WORKDIR}/Qleverfile

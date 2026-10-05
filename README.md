@@ -62,4 +62,11 @@ you, your backups, and the logs. The author is not responsible for downtime,
 lockouts, data loss, misconfiguration, security issues, or other problems caused
 by running these scripts.
 
+<!--
+  sudo apt-get install -y unzip
+  sudo usermod -aG docker $USER
+  newgrp docker
+  ./06_index_and_start.sh
+-->
+
 <br>
