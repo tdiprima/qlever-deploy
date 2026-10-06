@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# config.sh — EDIT THIS FILE FIRST, before running any numbered script.
+# config.sh - EDIT THIS FILE FIRST, before running any numbered script.
 # Every script in this project sources this file.
 
 # The public domain name pointing at this server (must have an A/AAAA
