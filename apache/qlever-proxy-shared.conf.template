@@ -1,0 +1,78 @@
+# qlever-proxy.conf — QLever's share of a vhost that another site owns.
+#
+# GENERATED FILE. Do not edit in place — edit
+# apache/qlever-proxy-shared.conf.template in the qlever-deploy repo and
+# rerun ./02b_patch_apache_proxy.sh, or your changes will be overwritten.
+#
+# Used when SHARED_HOST="true" in config.sh: only ports 80 and 443 are
+# available and another site (publication-review) already answers "/" on
+# them. That site's 443 vhost Include-s this file BEFORE its own
+# "ProxyPass /", because the first matching ProxyPass wins. Nothing here
+# may claim "/" or set anything vhost-wide.
+#
+# Layout:
+#   /sparql/                 -> QLever SPARQL engine   127.0.0.1:__QLEVER_PORT__
+#   /qlever                  -> redirect to /__QLEVER_UI_SLUG__
+#   /__QLEVER_UI_SLUG__ and its share links, /api/, /admin/, /static/
+#                            -> QLever Web UI          127.0.0.1:__QLEVER_UI_PORT__
+#   everything else          -> the site that owns the vhost
+#
+# Requires modules: proxy proxy_http proxy_wstunnel headers rewrite
+
+# -------------------------------------------------------------------
+# WebSocket upgrade for query-progress updates
+# -------------------------------------------------------------------
+# QLever opens a WebSocket to /watch/<query-id> to stream progress. Plain
+# ProxyPass cannot carry an Upgrade handshake, so without this rule the
+# browser's spinner never resolves even though the query itself succeeds.
+RewriteEngine On
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{HTTP:Connection} upgrade [NC]
+RewriteRule ^/sparql(.*)$ ws://127.0.0.1:__QLEVER_PORT__$1 [P,L]
+
+# -------------------------------------------------------------------
+# QLever SPARQL engine
+# -------------------------------------------------------------------
+# The trailing slash on both sides strips the /sparql prefix, so a request
+# for /sparql/?query=... reaches the engine as /?query=... which is where
+# QLever actually answers. A cold cache on a large index can take minutes
+# to answer, hence the timeout; it is set here rather than with
+# ProxyTimeout so the host site keeps its own.
+ProxyPass /sparql/ http://127.0.0.1:__QLEVER_PORT__/ timeout=1200
+ProxyPassReverse /sparql/ http://127.0.0.1:__QLEVER_PORT__/
+
+<Location /sparql/>
+    # Wildcard origin is appropriate for a read-only public endpoint: it
+    # lets third-party SPARQL clients query from a browser. It grants no
+    # write access — that is gated by ACCESS_TOKEN in the Qleverfile.
+    # If this endpoint ever serves non-public data, replace "*" with the
+    # specific origins allowed.
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+
+    # The host site caps request bodies for its own forms. Queries sent by
+    # POST are not forms and can be larger.
+    LimitRequestBody 0
+</Location>
+
+# -------------------------------------------------------------------
+# QLever Web UI
+# -------------------------------------------------------------------
+# Started separately from the engine — see "qlever ui". The UI cannot be
+# moved under a path prefix, so it gets exactly the paths it uses and no
+# more. "/" is not one of them here: open the UI at /qlever, or directly
+# at its backend slug (UI_CONFIG in the Qleverfile).
+#
+# The exclusion makes mod_proxy step aside so the redirect can answer.
+ProxyPass /qlever !
+RedirectMatch ^/qlever/?$ /__QLEVER_UI_SLUG__
+
+# The UI page itself, plus its six-character share links.
+ProxyPassMatch "^/(__QLEVER_UI_SLUG__(/([A-Za-z0-9]{6})?)?)$" "http://127.0.0.1:__QLEVER_UI_PORT__/$1"
+ProxyPass /api/ http://127.0.0.1:__QLEVER_UI_PORT__/api/
+ProxyPass /admin/ http://127.0.0.1:__QLEVER_UI_PORT__/admin/
+# If the host site serves files of its own under /static/, it must proxy
+# them by exact path above its Include of this file.
+ProxyPass /static/ http://127.0.0.1:__QLEVER_UI_PORT__/static/
+ProxyPassReverse / http://127.0.0.1:__QLEVER_UI_PORT__/

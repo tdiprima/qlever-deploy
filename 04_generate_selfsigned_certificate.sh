@@ -93,6 +93,8 @@ generate_selfsigned_pair() {
 
 main() {
     parse_arguments "$@"
+    is_shared_host && die "SHARED_HOST is true: the certificate and the 443 vhost belong to the site that owns
+${DOMAIN} (publication-review: deploy/apache-site.conf). Skip this script."
     validate_preconditions
     warn_if_chain_configured
     generate_selfsigned_pair

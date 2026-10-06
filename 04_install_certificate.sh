@@ -297,6 +297,8 @@ verify_tls_locally() {
 
 main() {
     parse_arguments "$@"
+    is_shared_host && die "SHARED_HOST is true: the certificate and the 443 vhost belong to the site that owns
+${DOMAIN} (publication-review: deploy/apache-site.conf). Skip this script."
     require_sudo
 
     validate_preconditions

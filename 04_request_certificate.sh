@@ -166,6 +166,8 @@ set ALLOW_LETSENCRYPT=1."
 }
 
 main() {
+    is_shared_host && die "SHARED_HOST is true: the certificate and the 443 vhost belong to the site that owns
+${DOMAIN} (publication-review: deploy/apache-site.conf). Skip this script."
     refuse_on_blocked_network
     pause_for_manual_step "Confirm DNS for '${DOMAIN}' points at this server's PUBLIC IP address.
 From another machine, run:  dig +short ${DOMAIN}

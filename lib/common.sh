@@ -28,3 +28,8 @@ next_step() {
     echo "NEXT: $*"
     echo "====================================================================="
 }
+
+# True when another site owns the 80/443 vhosts for DOMAIN (see config.sh).
+is_shared_host() {
+    [[ "${SHARED_HOST:-false}" == "true" ]]
+}

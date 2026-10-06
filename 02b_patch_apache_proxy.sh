@@ -16,7 +16,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/config.sh"
 
-readonly TEMPLATE_FILE="$SCRIPT_DIR/apache/qlever-proxy.conf.template"
+if is_shared_host; then
+    readonly TEMPLATE_FILE="$SCRIPT_DIR/apache/qlever-proxy-shared.conf.template"
+else
+    readonly TEMPLATE_FILE="$SCRIPT_DIR/apache/qlever-proxy.conf.template"
+fi
 readonly INCLUDE_FILE="/etc/apache2/qlever-proxy.conf"
 readonly VHOST_DIR="/etc/apache2/sites-available"
 readonly REQUIRED_MODULES=(proxy proxy_http proxy_wstunnel headers rewrite)
@@ -84,6 +88,12 @@ validate_preconditions() {
 
     [[ "$QLEVER_PORT" != "$QLEVER_UI_PORT" ]] \
         || die "QLEVER_PORT and QLEVER_UI_PORT are both '$QLEVER_PORT'. They must differ."
+
+    # The slug lands inside an Apache regex, so keep it to plain characters.
+    if is_shared_host; then
+        [[ "${QLEVER_UI_SLUG:-}" =~ ^[A-Za-z0-9_-]+$ ]] \
+            || die "QLEVER_UI_SLUG in config.sh must be letters, digits, '-' or '_': '${QLEVER_UI_SLUG:-}'"
+    fi
 }
 
 # Echo every QLever vhost file that exists. certbot names its copy
@@ -117,6 +127,7 @@ render_include_file() {
     rendered="$(sed \
         -e "s/__QLEVER_PORT__/${QLEVER_PORT}/g" \
         -e "s/__QLEVER_UI_PORT__/${QLEVER_UI_PORT}/g" \
+        -e "s/__QLEVER_UI_SLUG__/${QLEVER_UI_SLUG:-}/g" \
         "$TEMPLATE_FILE")" || die "Failed to render template."
 
     if [[ "$is_dry_run" == "true" ]]; then
@@ -207,7 +218,24 @@ verify_and_reload() {
     sudo systemctl reload apache2 || die "Apache reload failed. Check: systemctl status apache2"
 }
 
+report_shared_host_actions() {
+    echo
+    log "Wrote QLever's proxy rules. They take effect once the site that owns"
+    log "${DOMAIN} includes ${INCLUDE_FILE} (publication-review's"
+    log "deploy/apache-site.conf does):"
+    log "  https://${DOMAIN}/sparql/   -> SPARQL engine on 127.0.0.1:${QLEVER_PORT}"
+    log "  https://${DOMAIN}/qlever    -> Web UI on 127.0.0.1:${QLEVER_UI_PORT}, at /${QLEVER_UI_SLUG}"
+    echo
+    warn "A 503 at /qlever is expected until you start the Web UI:  qlever ui"
+    warn "A 404 at /${QLEVER_UI_SLUG} means QLEVER_UI_SLUG is not the UI's backend slug."
+}
+
 report_next_actions() {
+    if is_shared_host; then
+        report_shared_host_actions
+        return 0
+    fi
+
     echo
     log "Reverse proxy is now:"
     log "  https://${DOMAIN}/sparql/   -> SPARQL engine on 127.0.0.1:${QLEVER_PORT}"
@@ -226,15 +254,20 @@ main() {
 
     local vhosts
     mapfile -t vhosts < <(find_qlever_vhosts)
-    [[ "${#vhosts[@]}" -gt 0 ]] \
-        || die "No QLever vhost found in $VHOST_DIR. Run ./02_setup_apache.sh first."
+    if is_shared_host; then
+        # A leftover QLever vhost would compete with the site that owns DOMAIN.
+        [[ "${#vhosts[@]}" -eq 0 ]] \
+            || die "SHARED_HOST is true but QLever vhosts still exist in $VHOST_DIR. Run ./uninstall.sh first."
+    elif [[ "${#vhosts[@]}" -eq 0 ]]; then
+        die "No QLever vhost found in $VHOST_DIR. Run ./02_setup_apache.sh first."
+    fi
 
     log "Found ${#vhosts[@]} QLever vhost(s) to patch."
     enable_required_modules
     render_include_file
 
     local vhost
-    for vhost in "${vhosts[@]}"; do
+    for vhost in ${vhosts[@]+"${vhosts[@]}"}; do
         patch_vhost "$vhost"
     done
 

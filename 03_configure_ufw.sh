@@ -71,4 +71,8 @@ echo
 log "Current ufw ruleset:"
 sudo ufw status numbered
 
-next_step "run ./04_request_certificate.sh"
+if is_shared_host; then
+    next_step "run ./07_verify.sh (the 04_* certificate scripts do not apply on a shared host)"
+else
+    next_step "run ./04_request_certificate.sh"
+fi

@@ -5,13 +5,28 @@
 # The public domain name pointing at this server (must have an A/AAAA
 # record pointing at this machine's public IP before you run
 # 04_request_certificate.sh).
-DOMAIN="your.domain.com"
+DOMAIN="atoz.stonybrookmedicine.edu"
 
 # Contact email for Let's Encrypt certificate expiry notices.
 CERT_EMAIL="you@example.com"
 
+# "true" when only ports 80 and 443 are available and another site already
+# owns them for DOMAIN — on this host publication-review, through its
+# deploy/apache-site.conf, which also holds the certificate. QLever then
+# gets paths inside that site instead of vhosts of its own:
+#   https://DOMAIN/sparql/   SPARQL engine
+#   https://DOMAIN/qlever    Web UI (redirects to /QLEVER_UI_SLUG)
+# Skip the 04_* certificate scripts in this mode. Set to "false" on a host
+# where QLever is the only site; it is then served at https://DOMAIN/.
+SHARED_HOST="true"
+
+# Shared host only: the backend slug of the QLever Web UI, which is the
+# path it is opened at. This is UI_CONFIG in the Qleverfile.
+QLEVER_UI_SLUG="default"
+
 # Port QLever listens on internally. Apache proxies to this over
-# localhost; it never needs to be opened in ufw.
+# localhost; it never needs to be opened in ufw. Must match PORT in the
+# Qleverfile and SPARQL_ENDPOINT in the applications' .env files.
 QLEVER_PORT="7000"
 
 # Port the QLever Web UI listens on. The Web UI is a SEPARATE service from

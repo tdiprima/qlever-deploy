@@ -23,6 +23,15 @@ for mod in proxy proxy_http headers; do
     fi
 done
 
+# On a shared host the other site owns the vhosts for DOMAIN, and a second
+# one with the same ServerName would only fight it. 02b renders the proxy
+# rules that site includes.
+if is_shared_host; then
+    log "SHARED_HOST is true — not writing a QLever vhost; another site owns 80/443 for ${DOMAIN}."
+    next_step "run ./02b_patch_apache_proxy.sh"
+    exit 0
+fi
+
 VHOST_FILE="/etc/apache2/sites-available/qlever.conf"
 if [[ -f "$VHOST_FILE" ]]; then
     log "$VHOST_FILE already exists — leaving it untouched."
